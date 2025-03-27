@@ -1,0 +1,36 @@
+SRAtoolkit install:
+
+1.	wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.0/sratoolkit.3.0.0-ubuntu64.tar.gz
+2.	tar -vxzf  sratoolkit.3.0.0-ubuntu64.tar.gz
+3.	export PATH=$PATH:$HOME/sratoolkit.3.0.0-ubuntu64/bin
+4.	vdb-config --interactive
+5.	cd sratoolkit.3.0.0-ubuntu64/
+
+Data download:
+
+1.	prefetch -r yes -p -O ~/FYP/SRAData
+2.	fastq-dump -O ~/FYP/Preprocess/Raw sample ~/FYP/SRAData/T0
+3.	faheem@DESKTOP-C5EGI0U:~/FYP/SRAData/T0/sample$ ~/sratoolkit.3.0.0-ubuntu64/bin/fastq-dump -O ~/FYP/Preprocess/Raw/ ./sample.sra
+Read 21714986 spots for ./sample.sra
+Written 21714986 spots for ./sample.sra
+4.	gzip sample.fastq
+
+Installing Mamba:
+ 
+1.	# Download the latest version of Mambaforge for Linux x86_64 from the conda-forge GitHub repository 
+Wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh 
+2.	# Execute the downloaded Mambaforge installer script 
+bash Mambaforge-Linux-x86_64.sh 
+3.	# Source the Mamba activation script from the installation location 
+source ~/mamba/mambaforge/etc/profile.d/mamba.sh 
+4.	# Activate the Mamba base environment 
+mamba activate 
+
+Creating Environment:
+
+1.	# Create a new environment named "qc" using Mamba 
+mamba create -n qc 
+2.	# Activate the "qc" environment 
+mamba activate qc 
+3.	# Install packages from the bioconda channel using Mamba 
+mamba install -c bioconda fastp fastqc multiqc
