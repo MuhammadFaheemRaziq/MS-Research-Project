@@ -58,9 +58,9 @@ To predict treatment response based on microbial SNPs, we developed and evaluate
 
 The key predictive SNPs identified included:
 
-1. Ala168Val (lpdA) in Phocaeicola dorei
-2. Tyr233His, Leu330Ser (lpdA) in Parabacteroides distasonis
-3. His233Arg (obgE) in Parabacteroides distasonis
+1. Ala168Val (lpdA) in _Phocaeicola dorei_
+2. Tyr233His, Leu330Ser (lpdA) in _Parabacteroides distasonis_
+3. His233Arg (obgE) in _Parabacteroides distasonis_
 
 These SNPs showed a strong correlation with patients' immunotherapy response and could be useful in developing personalized treatment strategies.
 
