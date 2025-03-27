@@ -1,0 +1,24 @@
+Preprocessing:
+
+1.	Fastqc : fastqc -t 4 -o ./PreQC/T2/ ./Raw/T2/*.fastq.gz
+2.	Samples list for fastp: ls *.fastq.gz | sed 's/\.fastq\.gz$//' > samples_list
+●	chmod +r ./samples_list
+3.	Fastp: fastp -i ./Raw/T0/ERR2213660.fastq.gz -o ./Clean/T0/ERR2213660.fastq.gz --trim_front1 5 --length_limit 265 --length_required 100 (single sample)
+4.	for i in `cat ./Raw/T0/samples_list.txt`; do fastp -i ./Raw/T0/${i}.fastq.gz -o ./Clean/T0/${i}.fastq.gz --trim_front1 5 --length_limit 265 --length_required 100; done (multiple samples).
+5.	PostQC: fastqc -t 4 -o ./PostQC/T0/ ./Clean/T0/*.fastq.gz
+
+Linux HPC Additional Codes:
+For RAM: free -g
+For space: df -h
+Occupied space: du -sh
+Script run: bash (file name)
+For background running:  nohup ./assembly.sh & (nohup (script name) &)
+
+Human reads removal:
+
+1.	BBMap: wget https://sourceforge.net/projects/bbmap/files/BBMap_38.90.tar.gz
+2.	tar -xzvf BBMap_38.90.tar.gz
+3.	Test: ./bbmap/bbduk.sh
+4.	Sample list create:  ls *.fastq.gz | sed 's/\.fastq\.gz$//' > cleanT0.list
+5.	./bbmap/bbduk.sh -Xmx50g in=./Preprocess/Clean/T0/sample.fastq out=./Preprocess/hg_trimmed/T0/sample.fastq ref=~/Databases/hg38/GRCh38_latest_genomic.fna k=31 prealloc=t threads=24 (single sample)
+6.	for samples in `cat cleanT0.list`;do ~/bbmap/bbduk.sh \ -Xmx50g \ in=./Preprocess/Clean/T0/${samples}.fastq.gz \ out=./Preprocess/hg_trimmed/T0/${samples}.fastq.gz \ ref=~/Databases/hg38/GRCh38_latest_genomic.fna \ k=31 \ prealloc=t \ threads=24 done (Loop).
