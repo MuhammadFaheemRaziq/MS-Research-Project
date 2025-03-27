@@ -1,0 +1,167 @@
+# Multiple models were deployed including random forest classifier (providing sample code only for RF)
+# @title Random forest classifier
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve, auc, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.feature_selection import SelectKBest, chi2
+from imblearn.over_sampling import SMOTE
+
+# Load the data
+file_path = '/content/Data'  # Update the path
+data = pd.read_csv(file_path)
+
+# Preprocess the data
+le = LabelEncoder()
+data['Response'] = le.fit_transform(data['Response'])
+
+# One-hot encode 'Specie', 'Timepoint', 'EFFECT', and 'GENE'
+data_encoded = pd.get_dummies(data, columns=['Specie', 'Timepoint', 'EFFECT', 'GENE'])
+
+# Ensure all columns except 'Sample' and 'Response' are numeric
+columns_to_convert = data_encoded.columns.difference(['Sample', 'Response'])
+data_encoded[columns_to_convert] = data_encoded[columns_to_convert].apply(pd.to_numeric, errors='coerce').fillna(0)
+
+# Ensure there are no boolean columns
+for col in data_encoded.columns:
+    if data_encoded[col].dtype == 'bool':
+        data_encoded[col] = data_encoded[col].astype(int)
+
+# Split the data into features and target
+X = data_encoded.drop(columns=['Sample', 'Response'])
+y = data_encoded['Response']
+
+# Address the imbalanced dataset using SMOTE (Synthetic Minority Over-sampling Technique)
+smote = SMOTE(random_state=42)
+X_res, y_res = smote.fit_resample(X, y)
+
+# Feature selection using chi-square
+k = 20  # Select top 20 features
+chi2_selector = SelectKBest(chi2, k=k)
+X_kbest = chi2_selector.fit_transform(X_res, y_res)
+
+# Get selected feature names
+selected_features = X.columns[chi2_selector.get_support()]
+
+# Split the resampled data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_kbest, y_res, test_size=0.2, random_state=42)
+
+# Define a reduced parameter grid for hyperparameter tuning
+param_grid = {
+    'n_estimators': [50, 100],
+    'max_depth': [None, 10],
+    'min_samples_split': [2, 5],
+    'min_samples_leaf': [1, 2]
+}
+
+# Initialize the Random Forest model
+rf_model = RandomForestClassifier(random_state=42)
+
+# Perform grid search with cross-validation
+grid_search = GridSearchCV(estimator=rf_model, param_grid=param_grid, cv=3, scoring='accuracy', n_jobs=-1, verbose=2)
+grid_search.fit(X_train, y_train)
+
+# Get the best model from grid search
+best_rf_model = grid_search.best_estimator_
+
+# Predict and evaluate the best model
+y_pred_best = best_rf_model.predict(X_test)
+
+# Compute all evaluation metrics
+accuracy = accuracy_score(y_test, y_pred_best)
+precision = precision_score(y_test, y_pred_best)
+recall = recall_score(y_test, y_pred_best)
+f1 = f1_score(y_test, y_pred_best)
+roc_auc = roc_auc_score(y_test, best_rf_model.predict_proba(X_test)[:, 1])
+
+# Print the classification report
+classification_report_best = classification_report(y_test, y_pred_best)
+print("Classification Report:\n", classification_report_best)
+print(f'Accuracy: {accuracy:.2f}')
+print(f'Precision: {precision:.2f}')
+print(f'Recall: {recall:.2f}')
+print(f'F1 Score: {f1:.2f}')
+print(f'ROC AUC: {roc_auc:.2f}')
+
+# Compute ROC curve and AUC
+fpr, tpr, thresholds = roc_curve(y_test, best_rf_model.predict_proba(X_test)[:, 1])
+roc_auc_value = auc(fpr, tpr)
+
+# Plot the ROC curve and save it as PNG
+plt.figure()
+plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc_value)
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc="lower right")
+plt.savefig('/content/roc_auc_plot.png')
+plt.show()
+
+# Extract feature importances
+feature_importances = best_rf_model.feature_importances_
+features = selected_features
+
+# Create a DataFrame for feature importances
+feature_importance_df = pd.DataFrame({'Feature': features, 'Importance': feature_importances})
+feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+# Extract top important features
+top_features = feature_importance_df.head(20)
+
+# Extract original gene names and variations from top features
+important_genes_variations = top_features[top_features['Feature'].str.startswith('GENE_') | top_features['Feature'].str.startswith('EFFECT_')]
+
+# Create a mapping of original names from encoded names
+gene_mapping = {f'GENE_{i}': gene for i, gene in enumerate(data['GENE'].unique())}
+effect_mapping = {f'EFFECT_{i}': effect for i, effect in enumerate(data['EFFECT'].unique())}
+
+# Map back to original names
+important_genes_variations['Original_Name'] = important_genes_variations['Feature'].apply(
+    lambda x: gene_mapping.get(x.replace('GENE_', ''), effect_mapping.get(x.replace('EFFECT_', ''), x))
+)
+
+# Separate the genes and variations
+important_genes = important_genes_variations[important_genes_variations['Feature'].str.startswith('GENE_')]
+important_effects = important_genes_variations[important_genes_variations['Feature'].str.startswith('EFFECT_')]
+
+# Save the important genes to CSV
+important_genes_output_file_path = '/content/important_genes.csv'
+important_genes.to_csv(important_genes_output_file_path, index=False)
+
+# Save the top 10 important variations to CSV
+important_effects_output_file_path = '/content/important_effects.csv'
+important_effects.head(10).to_csv(important_effects_output_file_path, index=False)
+
+# Display the top important genes and variations
+print("Important Genes:")
+print(important_genes)
+print("Top 10 Important Variations:")
+print(important_effects.head(10))
+
+# Calculate correlation matrix for important genes and effects
+important_features = pd.concat([important_genes, important_effects])
+correlation_data = data_encoded[important_features['Feature'].tolist() + ['Response']]
+
+# Compute correlation matrix
+correlation_matrix = correlation_data.corr()
+
+# Plot correlation matrix and save it as PNG
+plt.figure(figsize=(14, 10))
+sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='coolwarm', vmin=-1, vmax=1, cbar=True)
+plt.title('Correlation Matrix')
+plt.savefig('/content/correlation_matrix.png')
+plt.show()
+
+# Compute and plot confusion matrix
+cm = confusion_matrix(y_test, y_pred_best)
+cmd = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
+cmd.plot(cmap=plt.cm.Blues)
+plt.title('Confusion Matrix')
+plt.savefig('/content/confusion_matrix.png')
+plt.show()
