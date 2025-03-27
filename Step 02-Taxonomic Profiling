@@ -1,0 +1,66 @@
+Taxonomic profiling:
+
+1.	Metaphlan environment create (mamba create –n metaphlan).
+2.	Metaphlan install (mamba install –c bioconda metaphlan).
+3.	Metaphlan database install (metaphlan –install).
+4.	mkdir -p sams
+mkdir -p bowtie2
+mkdir -p profiles
+for f in `cat T0.txt`;
+do
+ 	 metaphlan fastq/${f}.fastq.bz2 \
+  	--input_type fastq \
+  	-s sams/${f}.sam.bz2 \
+  	--bowtie2out bowtie2/${f}.bowtie2.bz2 \
+  	-o profiles/${f}_profile.tsv \
+  	--nproc 50 \
+ 	 -x mpa_v30_CHOCOPhlAn_201901;
+done
+5.	mkdir consensus_markers
+sample2markers.py -i sams/*.sam.bz2 -o consensus_markers --nproc 50
+6.	mkdir clade_markers
+extract_markers.py -c Bacteroides_caccae -o clade_markers/
+
+Taxonomic cladogram:
+
+1.	#using GraPhlAn
+tail -n +2 profiles/Raw_T0_allsamples.tsv | cut -f1,3- > Raw_T0_allsamples_reformatted.txt
+ 	export2graphlan.py --skip_rows 1 -i Raw_T0_allsamples_reformatted.txt --tree Raw_T0_allsamples.tree.txt --annotation Raw_T0_allsamples.annot.txt --most_abundant 100 --least_biomarkers 5 --annotations 5,6 --external_annotations 7 --min_clade_size 6 --title "T0 Taxonomic Classification" --internal_levels --abundance_threshold 1 --annotation_legend_font_size 9 --title_font_size 18 --min_font_size 8 --max_font_size 8 --def_clade_size 8
+2.	graphlan_annotate.py --annot Raw_T0_allsamples.annot.txt Raw_T0_allsamples.tree.txt Raw_T0_allsamples.xml
+ 	graphlan.py --dpi 400 Raw_T0_allsamples.xml Raw_T0_allsamples.png --size 11
+
+Taxonomic heatmap:
+
+1.	#using hclust.py on MetaPhlAn3
+hclust2.py -i profiles/species_T0_allsamples.tsv -o abundance_heatmap_species_top25.png --colormap Blues --cell_aspect_ratio 2.5 -l --flabel_size 3 --slabel_size 3 --ftop 25 --image_size 5 --colorbar_font_size 5 --dpi 500
+2.	#heatmaps using R
+library(pheatmap)
+graphics.off()
+
+# Import data files
+All_species <- read.table("D:/Metaphlan all samples table/Tables/species_allsamples.tsv", row.names = 1, header = TRUE)
+
+# Sort the data table
+All_species_sorted <- All_species[order(-rowSums(All_species)),]
+
+# Extract timepoints from sample names
+#timepoints <- sub("_.*", "", colnames(All_species_sorted))  # Extracts the part before the underscore
+#annotation_timepoints <- data.frame(Timepoint = factor(timepoints))
+#rownames(annotation_timepoints) <- colnames(All_species_sorted)
+
+# Generate heatmap with grouped samples by timepoints
+pheatmap(All_species_sorted[1:10,],
+         color = colorRampPalette(c("blue", "white", "steelblue", "red"))(100),
+         clustering_distance_rows = "euclidean", 
+         clustering_distance_cols = "euclidean", 
+         clustering_method = "complete", 
+         fontsize_row = 8, 
+         fontsize_col = 8,
+         scale = "row",
+         #annotation_col = annotation_timepoints,
+         #annotation_legend = TRUE,
+         #annotation_colors = list(
+           #Timepoint = c("T0" = "grey", "T1" = "black", "T2" = "red")),
+         border_color = "black",
+         cellwidth = 10,
+         cellheight = 45
