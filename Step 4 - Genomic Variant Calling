@@ -1,0 +1,9 @@
+Variant calling:
+
+1.	snippy \ 
+	--cpus 24 \
+	--mincov 30 \
+	--report \
+	--outdir /home/fr10/variants_effect/T2/Bacteroides_uniformis/ERR2213684/ \
+	--ref /home/fr10/references_genbank/Bacteroides_uniformis.gb \
+	--se /mnt/d/Batch_1_Trimmed/T2/ERR2213684.fastq.gz
