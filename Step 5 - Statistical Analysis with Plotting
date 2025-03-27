@@ -1,0 +1,218 @@
+Statistical Analysis:
+
+1.	#Alpha diversity on gene count via R
+# Load necessary packages
+library(vegan)
+
+# Read CSV file into R, setting the first row as column names and the first column as row names
+data <- read.csv("D:/R_NR_gene_counts/R_NR_gene_matrix.csv", header = TRUE, row.names = 1)  # First row for column names, first column for row names
+
+# Transpose the data so that samples become the rows and genes become the columns
+data_t <- t(data)
+
+# Calculate Shannon diversity for each sample (each row)
+shannon_diversity <- diversity(data_t, index = "shannon")
+
+# Create a data frame with Shannon diversity and sample names
+shannon_df <- data.frame(Sample = rownames(data_t), Alpha_Diversity = shannon_diversity)
+
+# Write Shannon diversity to a CSV file
+write.csv(shannon_df, "D:/R_NR_gene_counts/Alpha_diversity.csv", row.names = FALSE)
+
+# Print the Shannon diversity data frame
+print(shannon_df)
+
+2.	#Alpha diversity on species abundance via R
+# Load necessary packages
+library(vegan)
+
+# Read CSV file into R, setting the first row as column names and the first column as row names
+data <- read.csv("D:/Metaphlan_all_samples_table/species_allsamples.csv", header = TRUE, row.names = 1)  # First row for column names, first column for row names
+
+# Transpose the data so that samples become the rows and genes become the columns
+data_t <- t(data)
+
+# Calculate Shannon diversity for each sample (each row)
+shannon_diversity <- diversity(data_t, index = "shannon")
+
+# Create a data frame with Shannon diversity and sample names
+shannon_df <- data.frame(Sample = rownames(data_t), Alpha_Diversity = shannon_diversity)
+
+# Write Shannon diversity to a CSV file
+write.csv(shannon_df, "D:/Statistical_analysis/Alpha_diversity_species/Alpha_diversity_species.csv", row.names = FALSE)
+
+# Print the Shannon diversity data frame
+print(shannon_df)
+
+3.	#Line plot of alpha diversity via python
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Load the CSV file into a DataFrame
+df = pd.read_csv('/content/variant_alpha_diversity_response.csv', delimiter=',')
+
+df.head()
+
+# Define colors for each case
+case_colors = {"Responder": "#FFC96F", "Non-Responder": "#7AA2E3"}
+
+# Plot
+sns.lineplot(data=df, x="Timepoint", y="Alpha_Diversity", hue="Response", palette=case_colors)
+
+# Add title
+plt.title('Variants Alpha diversity between Responses across timepoints')
+
+# Save the plot as a PDF
+plt.savefig('variants_alpha_diversity_plot.png', bbox_inches='tight')
+
+4.	#Wilcoxon test on gene alpha diversity by response
+# Load necessary libraries
+library(dplyr)  # for data manipulation
+library(ggplot2)  # for data visualization
+
+# Read in your data files
+alpha_diversity <- read.csv("D:/Statistical_analysis/Alpha_diversity/Variants/variant_alpha_diversity.csv")  # Adjust the path
+metadata <- read.csv("D:/Statistical_analysis/Metadata_All_samples.csv")  # Adjust the path
+
+# Merge the two dataframes based on the common "Sample" column
+merged_data <- merge(alpha_diversity, metadata, by = "Sample")
+
+# Perform Wilcoxon test on Alpha Diversity based on Response
+wilcoxon_result <- wilcox.test(Alpha_Diversity ~ Response, data = merged_data)
+
+# Extract the Wilcoxon test statistic and p-value
+wilcoxon_statistic <- wilcoxon_result$statistic
+p_value <- wilcoxon_result$p.value
+
+# Create boxplot with gridlines
+boxplot <- ggplot(merged_data, aes(x = Response, y = Alpha_Diversity, fill = Response)) +
+  geom_boxplot() +
+  labs(
+    title = "Variants Alpha Diversity by Response",
+    y = "Alpha Diversity"
+  ) +
+  theme(
+    # Set the background to white with a border and no gridlines
+    panel.background = element_rect(color = NA, fill = "white"),
+    panel.border = element_rect(color = "black", fill = NA, size = 0.5), 
+    panel.grid = element_blank()
+  ) +
+  # Hide x-axis labels
+  theme(axis.text.x = element_blank()) +
+  # Annotate with Wilcoxon test results
+  annotate(
+    "text",
+    x = 1.5,  # Position in the middle between the first and second boxplot
+    y = max(merged_data$Alpha_Diversity) * 1.05,  # Slightly above the highest boxplot
+    label = paste("p-value:", round(p_value, 4)),
+    hjust = 0.5,
+    vjust = 2,
+    size = 4,
+    color = "black"
+  )
+
+# Display the boxplot
+print(boxplot)
+
+5.	# Wilcoxon test on gene alpha diversity by timepoints
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(purrr)
+
+# Read in your data files
+alpha_diversity <- read.csv("D:/Statistical_analysis/Alpha_diversity/Variants/variant_alpha_diversity.csv")  # Adjust the path
+metadata <- read.csv("D:/Statistical_analysis/Metadata_All_samples.csv")  # Adjust the path
+
+# Merge the two dataframes based on the common "Sample" column
+merged_data <- merge(alpha_diversity, metadata, by = "Sample")
+
+# Convert 'Timepoint' to a factor
+merged_data$Timepoint <- as.factor(merged_data$Timepoint)
+
+# Perform the Wilcoxon test for each timepoint between "Response" groups
+wilcoxon_results <- merged_data %>%
+  group_by(Timepoint) %>%
+  summarize(
+    wilcoxon_result = list(
+      wilcox.test(Alpha_Diversity ~ Response, data = cur_data())
+    )
+  )
+
+# Extract the Wilcoxon statistic and p-value for each timepoint
+wilcoxon_summary <- wilcoxon_results %>%
+  mutate(
+    statistic = map_dbl(wilcoxon_result, ~ .x$statistic),
+    p_value = map_dbl(wilcoxon_result, ~ .x$p.value)
+  )
+
+# Create a boxplot with ggplot2, using 'facet_wrap()' to create separate plots by 'Timepoint'
+boxplot <- ggplot(merged_data, aes(x = Response, y = Alpha_Diversity, fill = Response)) +
+  geom_boxplot() +
+  labs(
+    title = "Variants Alpha Diversity by Response across Timepoints",
+    y = "Alpha Diversity"
+  ) +
+  theme_minimal() +
+  # Hide x-axis labels
+  theme(axis.text.x = element_blank()) +
+  # Add customized theme elements for aesthetics
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, size = 0.5), 
+    strip.background = element_rect(color = "black", fill = "lightgray", size = 0.5),
+    strip.text = element_text(size = 8, face = "bold"),
+    panel.grid = element_blank(),
+    strip.placement = "outside"
+  ) +
+  # Use 'facet_wrap()' to create separate plots for each 'Timepoint' category
+  facet_wrap(~ Timepoint) +
+  # Annotate with Wilcoxon test results for each timepoint
+  geom_text(
+    data = wilcoxon_summary,
+    aes(
+      x = 1,
+      y = 1.2 * max(merged_data$Alpha_Diversity),
+      label = paste("Wilcoxon statistic: ", round(statistic, 2), "\n", "p-value: ", round(p_value, 4))
+    ),
+    hjust = 0.2,
+    vjust = 1,
+    inherit.aes = FALSE
+  )
+
+# Display the boxplot
+print(boxplot)
+
+6.	#MaAsliN2 via R
+install.packages("devtools")
+devtools::install_github("biobakery/Maaslin2")
+
+#install.packages("Maaslin2")
+
+library(Maaslin2)
+# Read the data
+input_data <- read.csv("D:/Statistical_analysis/R_NR_gene_matrix.csv", header=TRUE, fill=TRUE, quote="")
+
+# Set the first column as row names and remove it from the data frame
+rownames(input_data) <- input_data[, 1]
+input_data <- input_data[, -1]
+
+input_metadata <-read.csv('D:/Statistical_analysis/Metadata_All_samples.csv' ,header = TRUE , row.names = 1 )
+#scaled_data <- scale(input2_data)
+
+input_metadata$Response <- as.factor(input_metadata$Response)
+
+levels = c("Responder", "Non-Responder")
+#input_metadata$Data_group <- relevel(input_metadata$Data_group, ref = "Responder")
+
+fit_data <- Maaslin2(
+  input_data, input_metadata, 'D:/Maaslin2/Maaslin2_gene_count/',  # Change 'output_folder' to your desired output folder
+  normalization  = 'NONE',
+  random_effects = NULL,
+  fixed_effects = c('Response'),
+  analysis_method = 'LM',
+  plot_heatmap = TRUE,
+  heatmap_first_n = 10,
+  max_pngs = 25,
+  standardize = FALSE)
