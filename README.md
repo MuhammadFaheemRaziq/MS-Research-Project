@@ -1,4 +1,4 @@
-**Prioritizing gut microbial SNPs linked to immunotherapy outcomes in NSCLC patients by integrative bioinformatics analysis**
+**The Gut Microbiome Strains: Non-Small Cell Lung Cancer Treatment: Deciphering the Connection**
 
 **Overview**
 
@@ -96,4 +96,4 @@ Researcher: Muhammad Faheem Raziq
 Institution: Metagenome Discovery Lab/SINES/National University of Sciences & Technology H-12 Islamabad, Pakistan
 Email: faheemraziq1999@gmail.com
 
-The research paper has been published for this work and can be found at "https://doi.org/10.1186/s12967-025-06370-0".
+The MS Thesis on this project can be found at http://10.250.8.41:8080/xmlui/handle/123456789/45063. The research paper has been published for this work and can be found at "https://doi.org/10.1186/s12967-025-06370-0".
