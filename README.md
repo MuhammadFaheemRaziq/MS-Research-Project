@@ -17,9 +17,9 @@ The primary objectives of this research were:
 
 The study used publicly available metagenomes from 87 NSCLC patients who were treated with nivolumab, an ICI therapy. The samples were collected at three different time points:
 
-T0 (before treatment)
-T1 (early response phase)
-T2 (later response phase or disease progression)
+1. T0 (before treatment)
+2. T1 (early response phase)
+3. T2 (later response phase or disease progression)
 
 These metagenomic datasets were analyzed to track microbial composition changes and genetic variations associated with treatment response.
 
