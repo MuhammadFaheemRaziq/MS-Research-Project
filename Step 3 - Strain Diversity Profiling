@@ -1,0 +1,4 @@
+Strain diversity profilling:
+
+1.	mkdir output_B_dorei
+strainphlan -s consensus_markers/*.pkl -m clade_markers/s__Bacteroides_dorei.fna -r reference_genomes/Bacteroides_dorei.fna -o output_B_dorei -c s__Bacteroides_dorei --phylophlan_mode fast --nproc 4 --marker_in_n_samples 20 --sample_with_n_markers 20
